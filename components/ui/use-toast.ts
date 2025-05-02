@@ -1,10 +1,4 @@
-type ToastProps = {
-  title: string
-  description?: string
-  variant?: "default" | "destructive"
-}
-
-export function toast(props: ToastProps) {
+export function toast(props) {
   // In a real implementation, this would show a toast notification
   console.log("Toast:", props)
 }

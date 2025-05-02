@@ -1,112 +1,91 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { useSearchParams, useRouter } from "next/navigation"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { useSearchParams } from "next/navigation"
+import { CheckCircle, ArrowLeft } from 'lucide-react'
 import { Button } from "@/components/ui/button"
-import { CheckCircle2, XCircle, Loader2 } from "lucide-react"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import Link from "next/link"
 
 export default function PaymentConfirmationPage() {
   const searchParams = useSearchParams()
-  const router = useRouter()
-  const [status, setStatus] = useState<"success" | "processing" | "failed" | "loading">("loading")
-  const [paymentDetails, setPaymentDetails] = useState<any>(null)
+  const paymentIntentId = searchParams.get("payment_intent")
+  const type = searchParams.get("type") || "payment"
+  const id = searchParams.get("id")
+  
+  const [confirmationDetails, setConfirmationDetails] = useState({
+    title: "Payment Successful",
+    description: "Thank you for your payment.",
+    details: [] as { label: string; value: string }[],
+  })
 
   useEffect(() => {
-    const checkPaymentStatus = async () => {
-      // In a real app, you would verify the payment status with your backend
-      const paymentIntent = searchParams.get("payment_intent")
-      const redirectStatus = searchParams.get("redirect_status")
-
-      // Simulate API call to check payment status
-      await new Promise((resolve) => setTimeout(resolve, 1500))
-
-      if (redirectStatus === "succeeded" || paymentIntent) {
-        setStatus("success")
-        setPaymentDetails({
-          id: paymentIntent || "pi_mock_123456",
-          amount: 89500 * 1.07, // Example amount
-          date: new Date().toISOString(),
-        })
-      } else if (redirectStatus === "processing") {
-        setStatus("processing")
-      } else {
-        setStatus("failed")
-      }
+    // In a real app, you would fetch the payment details from your API
+    // For now, we'll just set some mock data based on the payment type
+    if (type === "trailer") {
+      setConfirmationDetails({
+        title: "Trailer Rental Confirmed",
+        description: "Your trailer rental has been successfully processed.",
+        details: [
+          { label: "Confirmation Number", value: paymentIntentId?.substring(3, 11) || "CONF12345" },
+          { label: "Trailer ID", value: id || "trailer-1" },
+          { label: "Payment Status", value: "Paid" },
+        ],
+      })
+    } else if (type === "boat") {
+      setConfirmationDetails({
+        title: "Boat Purchase Confirmed",
+        description: "Your boat purchase has been successfully processed.",
+        details: [
+          { label: "Confirmation Number", value: paymentIntentId?.substring(3, 11) || "CONF12345" },
+          { label: "Boat ID", value: id || "boat-1" },
+          { label: "Payment Status", value: "Paid" },
+        ],
+      })
+    } else if (type === "service") {
+      setConfirmationDetails({
+        title: "Service Booking Confirmed",
+        description: "Your service booking has been successfully processed.",
+        details: [
+          { label: "Confirmation Number", value: paymentIntentId?.substring(3, 11) || "CONF12345" },
+          { label: "Service ID", value: id || "service-1" },
+          { label: "Payment Status", value: "Paid" },
+        ],
+      })
     }
-
-    checkPaymentStatus()
-  }, [searchParams])
+  }, [type, id, paymentIntentId])
 
   return (
-    <div className="container py-10 max-w-md mx-auto">
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-center">
-            Payment {status === "loading" ? "Processing" : status.charAt(0).toUpperCase() + status.slice(1)}
-          </CardTitle>
-          <CardDescription className="text-center">
-            {status === "loading" && "Checking your payment status..."}
-            {status === "success" && "Your payment has been processed successfully."}
-            {status === "processing" && "Your payment is being processed."}
-            {status === "failed" && "There was an issue with your payment."}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col items-center justify-center py-6">
-          {status === "loading" && <Loader2 className="h-16 w-16 animate-spin text-cyan-600" />}
-          {status === "success" && <CheckCircle2 className="h-16 w-16 text-green-500" />}
-          {status === "processing" && <Loader2 className="h-16 w-16 animate-spin text-amber-500" />}
-          {status === "failed" && <XCircle className="h-16 w-16 text-red-500" />}
-
-          {status === "success" && paymentDetails && (
-            <div className="mt-6 w-full space-y-2">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Payment ID:</span>
-                <span className="font-medium">{paymentDetails.id}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Amount:</span>
-                <span className="font-medium">${paymentDetails.amount.toLocaleString()}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Date:</span>
-                <span className="font-medium">{new Date(paymentDetails.date).toLocaleDateString()}</span>
-              </div>
+    <div className="container py-10">
+      <div className="max-w-md mx-auto">
+        <Card>
+          <CardHeader className="text-center">
+            <div className="flex justify-center mb-4">
+              <CheckCircle className="h-16 w-16 text-green-500" />
             </div>
-          )}
-
-          {status === "failed" && (
-            <p className="mt-4 text-center text-muted-foreground">
-              Please try again or contact our support team for assistance.
-            </p>
-          )}
-        </CardContent>
-        <CardFooter className="flex justify-center">
-          {status === "success" && (
+            <CardTitle className="text-2xl">{confirmationDetails.title}</CardTitle>
+            <CardDescription>{confirmationDetails.description}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {confirmationDetails.details.map((detail, index) => (
+                <div key={index} className="flex justify-between">
+                  <span className="text-muted-foreground">{detail.label}:</span>
+                  <span className="font-medium">{detail.value}</span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+          <CardFooter className="flex justify-center">
             <Button asChild>
-              <Link href="/">Return to Home</Link>
+              <Link href="/" className="flex items-center">
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Return to Home
+              </Link>
             </Button>
-          )}
-          {status === "processing" && (
-            <Button disabled>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Please wait...
-            </Button>
-          )}
-          {status === "failed" && (
-            <Button variant="outline" onClick={() => router.back()}>
-              Try Again
-            </Button>
-          )}
-          {status === "loading" && (
-            <Button disabled>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Checking payment...
-            </Button>
-          )}
-        </CardFooter>
-      </Card>
+          </CardFooter>
+        </Card>
+      </div>
     </div>
   )
 }

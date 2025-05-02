@@ -12,81 +12,11 @@ export const metadata: Metadata = {
   description: "Browse our selection of quality boats for sale",
 }
 
-async function getBoats(searchParams: any = {}) {
+// Simple function to get all boats
+async function getAllBoats() {
   try {
-    // Start building the query
-    let query = `
-      SELECT * FROM "Boat" 
-      WHERE 1=1
-    `
-    const queryParams: any[] = []
-
-    // Add filters
-    if (searchParams.keyword) {
-      query += ` AND (title ILIKE $${queryParams.length + 1} OR description ILIKE $${queryParams.length + 1})`
-      queryParams.push(`%${searchParams.keyword}%`)
-    }
-
-    if (searchParams.type) {
-      query += ` AND type = $${queryParams.length + 1}`
-      queryParams.push(searchParams.type)
-    }
-
-    if (searchParams.manufacturer) {
-      query += ` AND make = $${queryParams.length + 1}`
-      queryParams.push(searchParams.manufacturer)
-    }
-
-    if (searchParams.minPrice) {
-      query += ` AND price >= $${queryParams.length + 1}`
-      queryParams.push(Number(searchParams.minPrice))
-    }
-
-    if (searchParams.maxPrice) {
-      query += ` AND price <= $${queryParams.length + 1}`
-      queryParams.push(Number(searchParams.maxPrice))
-    }
-
-    if (searchParams.minYear) {
-      query += ` AND year >= $${queryParams.length + 1}`
-      queryParams.push(Number(searchParams.minYear))
-    }
-
-    if (searchParams.maxYear) {
-      query += ` AND year <= $${queryParams.length + 1}`
-      queryParams.push(Number(searchParams.maxYear))
-    }
-
-    // Add sorting
-    let orderBy = "year DESC" // default sort
-    if (searchParams.sort) {
-      switch (searchParams.sort) {
-        case "price-asc":
-          orderBy = "price ASC"
-          break
-        case "price-desc":
-          orderBy = "price DESC"
-          break
-        case "year-desc":
-          orderBy = "year DESC"
-          break
-        case "year-asc":
-          orderBy = "year ASC"
-          break
-        case "length-desc":
-          orderBy = "length DESC"
-          break
-        case "length-asc":
-          orderBy = "length ASC"
-          break
-      }
-    }
-
-    query += ` ORDER BY ${orderBy}`
-
-    // Execute the query
-    const boats = await sql.unsafe(query, queryParams)
-    return boats
+    const boats = await sql`SELECT * FROM "Boat" ORDER BY year DESC`
+    return Array.isArray(boats) ? boats : []
   } catch (error) {
     console.error("Failed to fetch boats:", error)
     return []
@@ -100,8 +30,8 @@ async function getFilterOptions() {
     const types = await sql`SELECT DISTINCT type FROM "Boat" ORDER BY type`
 
     return {
-      manufacturers: makes.map((m: any) => m.make),
-      types: types.map((t: any) => t.type),
+      manufacturers: Array.isArray(makes) ? makes.map((m: any) => m.make).filter(Boolean) : [],
+      types: Array.isArray(types) ? types.map((t: any) => t.type).filter(Boolean) : [],
     }
   } catch (error) {
     console.error("Failed to fetch filter options:", error)
@@ -109,8 +39,8 @@ async function getFilterOptions() {
   }
 }
 
-export default async function BoatsPage({ searchParams }: { searchParams: any }) {
-  const boats = await getBoats(searchParams)
+export default async function BoatsPage() {
+  const boats = await getAllBoats()
   const filterOptions = await getFilterOptions()
 
   return (
@@ -127,7 +57,7 @@ export default async function BoatsPage({ searchParams }: { searchParams: any })
           <MobileFilters filterOptions={filterOptions} />
           <div className="ml-auto flex items-center">
             <span className="text-sm text-muted-foreground mr-2 hidden sm:inline">Sort by:</span>
-            <Select defaultValue={searchParams.sort || "default"}>
+            <Select defaultValue="default">
               <SelectTrigger className="w-[180px]">
                 <SelectValue placeholder="Sort by" />
               </SelectTrigger>

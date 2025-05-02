@@ -1,76 +1,54 @@
 import Link from "next/link"
-import { Card, CardContent, CardFooter } from "@/components/ui/card"
+import Image from "next/image"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Anchor, Calendar, Gauge } from "lucide-react"
-
-interface Boat {
-  id: string
-  title: string
-  price: number
-  year: number
-  length: string
-  make: string
-  model: string
-  engine: string
-  hours: number
-  condition: string
-  description: string
-  features: string[]
-  images: string[]
-  status: string
-}
+import { formatCurrency } from "@/lib/utils"
 
 interface BoatListingCardProps {
-  boat: Boat
+  boat: {
+    id: string
+    title: string
+    make: string
+    model: string
+    year: number
+    length: string
+    price: number
+    images?: string[]
+    status?: string
+  }
 }
 
 export function BoatListingCard({ boat }: BoatListingCardProps) {
+  // Safely capitalize the first letter of status if it exists
+  const capitalizeStatus = (status: string | undefined) => {
+    if (!status) return ""
+    return status.charAt(0).toUpperCase() + status.slice(1)
+  }
+
   return (
-    <Card className="overflow-hidden flex flex-col h-full">
+    <Link href={`/boats/${boat.id}`}>
       <div className="relative aspect-[4/3] bg-muted">
-        <img
-          src={boat.images[0] || "/placeholder.svg?height=300&width=400"}
+        <Image
+          src={boat.images && boat.images.length > 0 ? boat.images[0] : "/placeholder.svg?height=300&width=400"}
           alt={boat.title}
           className="object-cover w-full h-full"
+          width={400}
+          height={300}
         />
-        {boat.status !== "available" && (
+        {boat.status === "available" && (
           <Badge variant="secondary" className="absolute top-2 right-2 bg-gray-500 text-white">
-            {boat.status.charAt(0).toUpperCase() + boat.status.slice(1)}
+            {capitalizeStatus(boat.status)}
           </Badge>
         )}
       </div>
-      <CardContent className="p-4 flex-grow">
-        <div className="flex justify-between items-start">
-          <div>
-            <h3 className="font-semibold text-lg line-clamp-1">{boat.title}</h3>
-            <p className="text-sm text-muted-foreground">
-              {boat.make} {boat.model}
-            </p>
+      <div className="p-4">
+        <h3 className="font-semibold text-lg">{boat.title}</h3>
+        <div className="flex justify-between items-center mt-2">
+          <div className="text-sm text-muted-foreground">
+            {boat.year} • {boat.length}
           </div>
-          <div className="text-lg font-bold">${boat.price.toLocaleString()}</div>
+          <div className="font-bold">{formatCurrency(boat.price)}</div>
         </div>
-        <div className="grid grid-cols-3 gap-2 mt-3 text-sm">
-          <div className="flex items-center gap-1">
-            <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
-            <span>{boat.year}</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <Anchor className="h-3.5 w-3.5 text-muted-foreground" />
-            <span>{boat.length}</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <Gauge className="h-3.5 w-3.5 text-muted-foreground" />
-            <span>{boat.hours} hrs</span>
-          </div>
-        </div>
-        <p className="mt-3 text-sm line-clamp-2 text-muted-foreground">{boat.description}</p>
-      </CardContent>
-      <CardFooter className="p-4 pt-0">
-        <Button asChild className="w-full">
-          <Link href={`/boats/${boat.id}`}>View Details</Link>
-        </Button>
-      </CardFooter>
-    </Card>
+      </div>
+    </Link>
   )
 }

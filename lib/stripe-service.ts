@@ -14,7 +14,7 @@ export const getStripe = async () => {
 // Create a payment intent for a boat purchase
 export const createBoatPaymentIntent = async (boatId: string, amount: number, customerEmail: string) => {
   try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/payments/boat`, {
+    const response = await fetch(`/api/payments/boat`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -27,7 +27,9 @@ export const createBoatPaymentIntent = async (boatId: string, amount: number, cu
     })
 
     if (!response.ok) {
-      throw new Error("Failed to create payment intent")
+      const errorData = await response.json().catch(() => ({}))
+      console.error("Payment intent creation failed:", response.status, errorData)
+      throw new Error(errorData.error || "Failed to create payment intent")
     }
 
     return await response.json()
@@ -46,7 +48,22 @@ export const createTrailerRentalPaymentIntent = async (
   customerEmail: string,
 ) => {
   try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/payments/trailer`, {
+    // Validate inputs before sending
+    if (!trailerId) throw new Error("Trailer ID is required")
+    if (!startDate) throw new Error("Start date is required")
+    if (!endDate) throw new Error("End date is required")
+    if (!amount || amount <= 0) throw new Error("Valid amount is required")
+    if (!customerEmail) throw new Error("Customer email is required")
+
+    console.log("Creating trailer rental payment intent:", {
+      trailerId,
+      startDate,
+      endDate,
+      amount,
+      customerEmail,
+    })
+
+    const response = await fetch(`/api/payments/trailer`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -60,13 +77,27 @@ export const createTrailerRentalPaymentIntent = async (
       }),
     })
 
+    // Log the response status for debugging
+    console.log("Payment intent response status:", response.status)
+
     if (!response.ok) {
-      throw new Error("Failed to create payment intent")
+      const errorText = await response.text()
+      let errorData = {}
+
+      try {
+        errorData = JSON.parse(errorText)
+      } catch (e) {
+        // If it's not JSON, use the text as is
+        errorData = { error: errorText }
+      }
+
+      console.error("Payment intent creation failed:", response.status, errorData)
+      throw new Error(errorData.error || "Failed to create payment intent")
     }
 
     return await response.json()
   } catch (error) {
-    console.error("Error creating payment intent:", error)
+    console.error("Error creating trailer rental payment intent:", error)
     throw error
   }
 }
@@ -79,7 +110,7 @@ export const createServicePaymentIntent = async (
   customerEmail: string,
 ) => {
   try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/payments/service`, {
+    const response = await fetch(`/api/payments/service`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -93,7 +124,9 @@ export const createServicePaymentIntent = async (
     })
 
     if (!response.ok) {
-      throw new Error("Failed to create payment intent")
+      const errorData = await response.json().catch(() => ({}))
+      console.error("Payment intent creation failed:", response.status, errorData)
+      throw new Error(errorData.error || "Failed to create payment intent")
     }
 
     return await response.json()
