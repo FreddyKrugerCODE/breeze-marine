@@ -1,0 +1,178 @@
+import type { Metadata } from "next"
+import { SearchFilters } from "@/components/boats/search-filters"
+import { MobileFilters } from "@/components/boats/mobile-filters"
+import { BoatListingCard } from "@/components/boats/boat-listing-card"
+import { Separator } from "@/components/ui/separator"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Ship } from "lucide-react"
+import { sql } from "@/lib/db"
+
+export const metadata: Metadata = {
+  title: "Boats for Sale | Breeze Marine",
+  description: "Browse our selection of quality boats for sale",
+}
+
+async function getBoats(searchParams: any = {}) {
+  try {
+    // Start building the query
+    let query = `
+      SELECT * FROM "Boat" 
+      WHERE 1=1
+    `
+    const queryParams: any[] = []
+
+    // Add filters
+    if (searchParams.keyword) {
+      query += ` AND (title ILIKE $${queryParams.length + 1} OR description ILIKE $${queryParams.length + 1})`
+      queryParams.push(`%${searchParams.keyword}%`)
+    }
+
+    if (searchParams.type) {
+      query += ` AND type = $${queryParams.length + 1}`
+      queryParams.push(searchParams.type)
+    }
+
+    if (searchParams.manufacturer) {
+      query += ` AND make = $${queryParams.length + 1}`
+      queryParams.push(searchParams.manufacturer)
+    }
+
+    if (searchParams.minPrice) {
+      query += ` AND price >= $${queryParams.length + 1}`
+      queryParams.push(Number(searchParams.minPrice))
+    }
+
+    if (searchParams.maxPrice) {
+      query += ` AND price <= $${queryParams.length + 1}`
+      queryParams.push(Number(searchParams.maxPrice))
+    }
+
+    if (searchParams.minYear) {
+      query += ` AND year >= $${queryParams.length + 1}`
+      queryParams.push(Number(searchParams.minYear))
+    }
+
+    if (searchParams.maxYear) {
+      query += ` AND year <= $${queryParams.length + 1}`
+      queryParams.push(Number(searchParams.maxYear))
+    }
+
+    // Add sorting
+    let orderBy = "year DESC" // default sort
+    if (searchParams.sort) {
+      switch (searchParams.sort) {
+        case "price-asc":
+          orderBy = "price ASC"
+          break
+        case "price-desc":
+          orderBy = "price DESC"
+          break
+        case "year-desc":
+          orderBy = "year DESC"
+          break
+        case "year-asc":
+          orderBy = "year ASC"
+          break
+        case "length-desc":
+          orderBy = "length DESC"
+          break
+        case "length-asc":
+          orderBy = "length ASC"
+          break
+      }
+    }
+
+    query += ` ORDER BY ${orderBy}`
+
+    // Execute the query
+    const boats = await sql.unsafe(query, queryParams)
+    return boats
+  } catch (error) {
+    console.error("Failed to fetch boats:", error)
+    return []
+  }
+}
+
+// Get unique manufacturers and types for filters
+async function getFilterOptions() {
+  try {
+    const makes = await sql`SELECT DISTINCT make FROM "Boat" ORDER BY make`
+    const types = await sql`SELECT DISTINCT type FROM "Boat" ORDER BY type`
+
+    return {
+      manufacturers: makes.map((m: any) => m.make),
+      types: types.map((t: any) => t.type),
+    }
+  } catch (error) {
+    console.error("Failed to fetch filter options:", error)
+    return { manufacturers: [], types: [] }
+  }
+}
+
+export default async function BoatsPage({ searchParams }: { searchParams: any }) {
+  const boats = await getBoats(searchParams)
+  const filterOptions = await getFilterOptions()
+
+  return (
+    <div className="container py-8">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
+        <div>
+          <h1 className="text-3xl font-bold flex items-center">
+            <Ship className="mr-2 h-6 w-6" />
+            Boats for Sale
+          </h1>
+          <p className="text-muted-foreground mt-1">Find your perfect boat from our selection of quality vessels</p>
+        </div>
+        <div className="flex items-center mt-4 md:mt-0">
+          <MobileFilters filterOptions={filterOptions} />
+          <div className="ml-auto flex items-center">
+            <span className="text-sm text-muted-foreground mr-2 hidden sm:inline">Sort by:</span>
+            <Select defaultValue={searchParams.sort || "default"}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Sort by" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="default">Featured</SelectItem>
+                <SelectItem value="price-asc">Price: Low to High</SelectItem>
+                <SelectItem value="price-desc">Price: High to Low</SelectItem>
+                <SelectItem value="year-desc">Year: Newest First</SelectItem>
+                <SelectItem value="year-asc">Year: Oldest First</SelectItem>
+                <SelectItem value="length-desc">Length: Longest First</SelectItem>
+                <SelectItem value="length-asc">Length: Shortest First</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      </div>
+
+      <Separator className="my-6" />
+
+      <div className="flex flex-col lg:flex-row gap-8">
+        <div className="hidden lg:block w-64 flex-shrink-0">
+          <SearchFilters filterOptions={filterOptions} />
+        </div>
+
+        <div className="flex-1">
+          <div className="mb-4 flex justify-between items-center">
+            <p className="text-sm text-muted-foreground">
+              Showing <span className="font-medium">{boats.length}</span> boats
+            </p>
+          </div>
+
+          {boats.length === 0 ? (
+            <div className="text-center py-12">
+              <h3 className="text-lg font-medium">No boats found</h3>
+              <p className="text-muted-foreground mt-1">Try adjusting your filters to find what you're looking for.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+              {boats.map((boat: any) => (
+                <BoatListingCard key={boat.id} boat={boat} />
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}

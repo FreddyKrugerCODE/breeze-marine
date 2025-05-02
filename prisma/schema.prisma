@@ -1,0 +1,133 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String       @id @default(cuid())
+  email        String       @unique
+  name         String
+  role         String       @default("staff")
+  passwordHash String
+  savedSearches SavedSearch[]
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+}
+
+model Service {
+  id          String    @id @default(cuid())
+  name        String
+  description String
+  category    String
+  price       Decimal?
+  duration    Int
+  active      Boolean   @default(true)
+  bookings    Booking[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Booking {
+  id             String   @id @default(cuid())
+  service        Service  @relation(fields: [serviceId], references: [id])
+  serviceId      String
+  date           DateTime
+  timeSlot       String
+  status         String   @default("pending")
+  customerName   String
+  customerEmail  String
+  customerPhone  String
+  boatMake       String
+  boatModel      String
+  boatYear       String
+  boatLength     String
+  notes          String?
+  paymentStatus  String?
+  paymentIntentId String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model Boat {
+  id          String   @id @default(cuid())
+  title       String
+  make        String
+  model       String
+  year        Int
+  length      String
+  price       Decimal
+  engine      String
+  hours       Int
+  condition   String
+  description String   @db.Text
+  features    String[] // Stored as JSON
+  images      String[] // Array of image URLs
+  status      String   @default("available")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Trailer {
+  id          String          @id @default(cuid())
+  type        String
+  capacity    Int
+  description String
+  dailyRate   Decimal
+  weekendRate Decimal
+  weeklyRate  Decimal
+  active      Boolean         @default(true)
+  rentals     TrailerRental[]
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+}
+
+model TrailerRental {
+  id              String   @id @default(cuid())
+  trailer         Trailer  @relation(fields: [trailerId], references: [id])
+  trailerId       String
+  startDate       DateTime
+  endDate         DateTime
+  status          String   @default("pending")
+  customerName    String
+  customerEmail   String
+  customerPhone   String
+  driversLicense  String
+  towVehicle      String
+  notes           String?
+  totalPrice      Decimal
+  paymentStatus   String?
+  paymentIntentId String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model VideoCall {
+  id            String   @id @default(cuid())
+  date          DateTime
+  time          String
+  purpose       String
+  status        String   @default("scheduled")
+  meetingLink   String?
+  customerName  String
+  customerEmail String
+  customerPhone String
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model SavedSearch {
+  id        String   @id @default(cuid())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  name      String
+  filters   Json
+  createdAt DateTime @default(now())
+}
